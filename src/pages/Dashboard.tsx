@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Settings, Bell, Check, X, Eye, LogOut } from "lucide-react";
+import { CreditCard, Settings, Bell, Check, X, Eye, LogOut, Banknote } from "lucide-react";
+import { PlaidLink } from "@/components/PlaidLink";
+import { AccountCard } from "@/components/AccountCard";
+import { TransactionList } from "@/components/TransactionList";
 
 interface Subscription {
   id: string;
@@ -56,6 +59,7 @@ const mockSubscriptions: Subscription[] = [
 
 const Dashboard = () => {
   const [subscriptions, setSubscriptions] = useState(mockSubscriptions);
+  const [showPlaidLink, setShowPlaidLink] = useState(true);
   const navigate = useNavigate();
 
   const handleApprove = (id: string) => {
@@ -150,6 +154,49 @@ const Dashboard = () => {
                 <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
                   <Check className="w-5 h-5 text-primary" />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Bank Connection Section */}
+        {showPlaidLink && (
+          <Card className="border-0 shadow-lg mb-8 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+                  <Banknote className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">Connect Your Bank</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Link your bank account to monitor transactions and manage approvals
+                  </p>
+                </div>
+              </div>
+              <PlaidLink onSuccess={() => setShowPlaidLink(false)} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Account Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <TransactionList />
+          
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <h2 className="text-xl font-semibold">Bank Accounts</h2>
+              <p className="text-sm text-muted-foreground">
+                Your connected accounts and balances
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Banknote className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No accounts connected</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Connect your bank account to see your accounts here
+                </p>
               </div>
             </CardContent>
           </Card>
