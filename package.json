@@ -8,8 +8,6 @@
     "build": "vite build --outDir dist",
     "preview": "vite preview --port 4173",
     "vercel-build": "npm run build"
-  
-
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
