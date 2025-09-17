@@ -1,4 +1,5 @@
 import os, httpx
+from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -16,7 +17,7 @@ BASES = {
 PLAID_BASE = BASES.get(PLAID_ENV, BASES["sandbox"])
 
 class LinkTokenReq(BaseModel):
-    userId: str | None = None
+    userId: Optional[str] = None
 
 class ExchangeReq(BaseModel):
     public_token: str
@@ -34,7 +35,7 @@ async def create_link_token(body: LinkTokenReq):
         "user": {"client_user_id": body.userId or "anonymous"},
         "products": ["transactions"],
     }
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(f"{PLAID_BASE}/link/token/create", json=payload)
     if r.status_code != 200:
         raise HTTPException(500, r.text)
@@ -45,11 +46,11 @@ async def exchange_public_token(body: ExchangeReq):
     if not (PLAID_CLIENT_ID and PLAID_SECRET):
         raise HTTPException(500, "PLAID env vars missing")
     payload = {
-        "client_id": PLAID_CLIENT_ID,
-        "secret": PLAID_SECRET,
+        "client_id": "68b764fb1ee2d90024859201",
+        "secret": "151ce121ec38961921aaac7a08a1ce",
         "public_token": body.public_token,
     }
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(f"{PLAID_BASE}/item/public_token/exchange", json=payload)
     if r.status_code != 200:
         raise HTTPException(500, r.text)
