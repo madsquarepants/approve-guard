@@ -1,6 +1,5 @@
-// src/hooks/usePlaid.ts
 import { useEffect, useState, useCallback } from "react";
-import { usePlaidLink } from "react-plaid-link";
+import { usePlaidLink } from "react-plaid-link"; // or "@plaid/react-plaid-link" if you prefer that package
 
 const API_BASE =
   (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8080";
@@ -10,7 +9,6 @@ export function usePlaidLinkFlow(userId: string | null = null) {
   const [exchangeResult, setExchangeResult] = useState<any>(null);
   const [initError, setInitError] = useState<string | null>(null);
 
-  // 1) Get link_token from backend
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -34,7 +32,6 @@ export function usePlaidLinkFlow(userId: string | null = null) {
     };
   }, [userId]);
 
-  // 2) Exchange public_token on backend
   const onSuccess = useCallback(async (public_token: string) => {
     try {
       const res = await fetch(`${API_BASE}/v1/plaid/exchange`, {
