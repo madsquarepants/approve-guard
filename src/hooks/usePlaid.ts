@@ -1,88 +1,104 @@
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useEffect, useState, useCallback } from "react";
+import { usePlaidLink } from "react-plaid-link";
 
-export const usePlaid = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
-  const createLinkToken = async () => {
-    setLoading(true);
-    setError(null);
+export function usePlaidLinkFlow(userId: string | null = null) {
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [exchangeResult, setExchangeResult] = useState<any>(null);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setInitError(null);
+        const res = await fetch(`${API_BASE}/v1/plaid/link-token`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ userId: userId ?? "anonymous" }),
+        });
+        if (!res.ok) throw new Error(`link-token HTTP ${res.status}`);
+        const json = await res.json();
+        if (!cancelled) setLinkToken(json.link_token);
+      } catch (e: any) {
+        if (!cancelled) setInitError(e?.message || "Failed to initialize bank connection");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const onSuccess = useCallback(async (public_token: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const response = await supabase.functions.invoke('plaid-link-token', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+      const res = await fetch(`${API_BASE}/v1/plaid/exchange`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ public_token }),
       });
-
-      if (response.error) throw response.error;
-      return response.data.link_token;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create link token';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
+      const json = await res.json();
+      setExchangeResult(json);
+    } catch (e) {
+      console.error("exchange failed", e);
     }
-  };
+  }, []);
 
-  const exchangePublicToken = async (publicToken: string) => {
-    setLoading(true);
-    setError(null);
+  const { open, ready, error } = usePlaidLink({
+    token: linkToken || "",
+    onSuccess,
+    onExit: (err) => err && console.error("plaid exit", err),
+  });
+
+  return { open, ready: !!linkToken && ready, error: error || initError, exchangeResult, linkToken };
+}
+import { useEffect, useState, useCallback } from "react";
+import { usePlaidLink } from "react-plaid-link";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+export function usePlaidLinkFlow(userId: string | null = null) {
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [exchangeResult, setExchangeResult] = useState<any>(null);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setInitError(null);
+        const res = await fetch(`${API_BASE}/v1/plaid/link-token`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ userId: userId ?? "anonymous" }),
+        });
+        if (!res.ok) throw new Error(`link-token HTTP ${res.status}`);
+        const json = await res.json();
+        if (!cancelled) setLinkToken(json.link_token);
+      } catch (e: any) {
+        if (!cancelled) setInitError(e?.message || "Failed to initialize bank connection");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const onSuccess = useCallback(async (public_token: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const response = await supabase.functions.invoke('plaid-exchange-token', {
-        body: { public_token: publicToken },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+      const res = await fetch(`${API_BASE}/v1/plaid/exchange`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ public_token }),
       });
-
-      if (response.error) throw response.error;
-      return response.data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to exchange token';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
+      const json = await res.json();
+      setExchangeResult(json);
+    } catch (e) {
+      console.error("exchange failed", e);
     }
-  };
+  }, []);
 
-  const syncTransactions = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+  const { open, ready, error } = usePlaidLink({
+    token: linkToken || "",
+    onSuccess,
+    onExit: (err) => err && console.error("plaid exit", err),
+  });
 
-      const response = await supabase.functions.invoke('plaid-sync-transactions', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (response.error) throw response.error;
-      return response.data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to sync transactions';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    createLinkToken,
-    exchangePublicToken,
-    syncTransactions,
-    loading,
-    error,
-  };
-};
+  return { open, ready: !!linkToken && ready, error: error || initError, exchangeResult, linkToken };
+}
