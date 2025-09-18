@@ -7,8 +7,9 @@ interface PlaidLinkProps {
 }
 
 // ✅ Force correct backend for now
-const API =
-  import.meta.env.VITE_API_BASE_URL || "https://approve-guard.onrender.com"; // no trailing slash
+const API = import.meta.env.VITE_API_BASE_URL || "https://approve-guard.onrender.com";
+console.log("API =", API); // TEMP: should print the onrender.com URL
+
 
 // Load Plaid JS once (works in Vite)
 function loadPlaidScript(): Promise<void> {
