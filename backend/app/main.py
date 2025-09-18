@@ -9,7 +9,7 @@ from .routers import plaid
 app = FastAPI(title="Approve Guard Backend", version="1.0.0")
 
 ALLOWED_ORIGINS = [
-    "https://YOUR-FRONTEND.vercel.app",  # ⬅️ replace with your actual Vercel URL
+    "https://approve-guard-git-main-ghazanfars-projects-05805c1d.vercel.app",  # ⬅️ replace with your actual Vercel URL
 ]
 
 app.add_middleware(
