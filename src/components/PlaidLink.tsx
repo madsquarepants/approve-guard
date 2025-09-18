@@ -1,4 +1,5 @@
 // src/hooks/usePlaid.ts
+export const PlaidLink = ({ onSuccess }: PlaidLinkProps) => {
 import { useCallback, useState } from "react";
 
 // TEMP hardcode so we know it's calling the right API
@@ -49,4 +50,5 @@ export const usePlaid = () => {
   }, []);
 
   return { createLinkToken, exchangePublicToken, loading, error };
+  export default PlaidLink;
 };
