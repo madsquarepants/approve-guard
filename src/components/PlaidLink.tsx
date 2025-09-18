@@ -1,7 +1,4 @@
-"use client";
-
-import { useState } from "react";
-import Script from "next/script";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -9,35 +6,48 @@ interface PlaidLinkProps {
   onSuccess?: () => void;
 }
 
-// ✅ FORCE the correct backend for now
+// ✅ Force correct backend for now
 const API = "https://approve-guard.onrender.com"; // no trailing slash
 
-const PlaidLink = ({ onSuccess }: PlaidLinkProps) => {
+// Load Plaid JS once (works in Vite)
+function loadPlaidScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).Plaid) return resolve();
+    const s = document.createElement("script");
+    s.src = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Plaid JS failed to load"));
+    document.body.appendChild(s);
+  });
+}
+
+const PlaidLink: React.FC<PlaidLinkProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
 
   const handleConnect = async () => {
     try {
       setLoading(true);
 
-      // 1) Get link_token from the backend
+      // 1) Ensure Plaid JS is on the page
+      await loadPlaidScript();
+
+      // 2) Get link_token from backend
       const r = await fetch(`${API}/v1/plaid/link-token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // body optional
+        body: JSON.stringify({}), // optional
       });
       if (!r.ok) throw new Error(`link-token ${r.status}`);
       const { link_token } = await r.json();
 
-      // 2) Open Plaid Link (uses the script below)
+      // 3) Open Plaid Link
       const Plaid = (window as any).Plaid;
-      if (!Plaid) {
-        toast.error("Plaid JS not loaded");
-        return;
-      }
+      if (!Plaid) throw new Error("Plaid not available");
       const handler = Plaid.create({
         token: link_token,
         onSuccess: async (public_token: string) => {
-          // 3) Exchange public_token on backend
+          // 4) Exchange public_token on backend
           const ex = await fetch(`${API}/v1/plaid/exchange`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -52,10 +62,11 @@ const PlaidLink = ({ onSuccess }: PlaidLinkProps) => {
         },
         onExit: () => {},
       });
+
       handler.open();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error("Failed to connect bank");
+      toast.error(e?.message || "Failed to connect bank");
     } finally {
       setLoading(false);
     }
@@ -63,11 +74,6 @@ const PlaidLink = ({ onSuccess }: PlaidLinkProps) => {
 
   return (
     <div className="text-center">
-      {/* Loads Plaid Link SDK */}
-      <Script
-        src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"
-        strategy="afterInteractive"
-      />
       <h3 className="text-lg font-semibold mb-4">Connect Your Bank Account</h3>
       <p className="text-muted-foreground mb-6">
         Securely connect your bank account to start monitoring transactions.
