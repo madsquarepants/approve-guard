@@ -1,14 +1,24 @@
+// src/hooks/usePlaid.ts
 import { useEffect, useState, useCallback } from "react";
-import { usePlaidLink } from "react-plaid-link"; 
+import { usePlaidLink } from "react-plaid-link";
 
 const API_BASE =
   (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8080";
 
-export function usePlaidLinkFlow(userId: string | null = null) {
+type UsePlaidReturn = {
+  open: (() => void) | undefined;
+  ready: boolean;
+  error: string | null;
+  exchangeResult: any;
+  linkToken: string | null;
+};
+
+export function usePlaidLinkFlow(userId: string | null = null): UsePlaidReturn {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [exchangeResult, setExchangeResult] = useState<any>(null);
   const [initError, setInitError] = useState<string | null>(null);
 
+  // 1) Get link_token from backend
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -32,6 +42,7 @@ export function usePlaidLinkFlow(userId: string | null = null) {
     };
   }, [userId]);
 
+  // 2) Exchange public_token on backend
   const onSuccess = useCallback(async (public_token: string) => {
     try {
       const res = await fetch(`${API_BASE}/v1/plaid/exchange`, {
@@ -61,4 +72,10 @@ export function usePlaidLinkFlow(userId: string | null = null) {
   };
 }
 
-export default usePlaidLinkFlow;
+// ⚠️ Compatibility export for components that expect `usePlaid`
+export function usePlaid(userId?: string): UsePlaidReturn {
+  return usePlaidLinkFlow(userId ?? null);
+}
+
+// Default export (optional): keep either one—both work for imports
+export default usePlaid;
