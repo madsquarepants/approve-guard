@@ -3,19 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Settings, Bell, Check, X, Eye, LogOut, Banknote } from "lucide-react";
+import {
+  CreditCard,
+  Settings,
+  Bell,
+  Check,
+  X,
+  Eye,
+  LogOut,
+  Banknote,
+} from "lucide-react";
 import { PlaidLink } from "@/components/PlaidLink";
 import { AccountCard } from "@/components/AccountCard";
 import BankAccountsCard from "@/components/BankAccountsCard";
-import  TransactionList  from "@/components/TransactionList";
+import TransactionList from "@/components/TransactionList";
 import { computeMetrics, Sub } from "@/lib/subscriptionMetrics";
 
-
+// ----- types -----
 interface Subscription {
-  type SubscriptionLike = Subscription & Sub;
-const money = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" });
-const metrics = computeMetrics((subscriptions as unknown as SubscriptionLike[]) || []);
-
   id: string;
   merchant: string;
   amount: number;
@@ -25,6 +30,7 @@ const metrics = computeMetrics((subscriptions as unknown as SubscriptionLike[]) 
   category: string;
 }
 
+// ----- mock data (you can replace later) -----
 const mockSubscriptions: Subscription[] = [
   {
     id: "1",
@@ -33,25 +39,25 @@ const mockSubscriptions: Subscription[] = [
     frequency: "Monthly",
     status: "pending",
     nextCharge: "2024-01-15",
-    category: "Entertainment"
+    category: "Entertainment",
   },
   {
-    id: "2", 
+    id: "2",
     merchant: "Spotify Premium",
     amount: 9.99,
     frequency: "Monthly",
     status: "active",
     nextCharge: "2024-01-12",
-    category: "Music"
+    category: "Music",
   },
   {
     id: "3",
     merchant: "Adobe Creative Cloud",
     amount: 52.99,
-    frequency: "Monthly", 
+    frequency: "Monthly",
     status: "active",
     nextCharge: "2024-01-20",
-    category: "Software"
+    category: "Software",
   },
   {
     id: "4",
@@ -60,32 +66,41 @@ const mockSubscriptions: Subscription[] = [
     frequency: "Monthly",
     status: "denied",
     nextCharge: "2024-01-10",
-    category: "Health & Fitness"
-  }
+    category: "Health & Fitness",
+  },
 ];
 
 const Dashboard = () => {
-  const [subscriptions, setSubscriptions] = useState(mockSubscriptions);
+  const [subscriptions, setSubscriptions] =
+    useState<Subscription[]>(mockSubscriptions);
   const [showPlaidLink, setShowPlaidLink] = useState(true);
   const navigate = useNavigate();
 
+  // ----- metrics for the 3 tiles -----
+  const money = new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+  });
+  const { monthlySpend, pendingCount, activeCount } = computeMetrics(
+    subscriptions as unknown as Sub[]
+  );
+
+  // ----- actions -----
   const handleApprove = (id: string) => {
-    setSubscriptions(prev =>
-      prev.map(sub => sub.id === id ? { ...sub, status: "active" as const } : sub)
+    setSubscriptions((prev) =>
+      prev.map((sub) =>
+        sub.id === id ? { ...sub, status: "active" as const } : sub
+      )
     );
   };
 
   const handleDeny = (id: string) => {
-    setSubscriptions(prev =>
-      prev.map(sub => sub.id === id ? { ...sub, status: "denied" as const } : sub)
+    setSubscriptions((prev) =>
+      prev.map((sub) =>
+        sub.id === id ? { ...sub, status: "denied" as const } : sub
+      )
     );
   };
-
-  const totalMonthly = subscriptions
-    .filter(sub => sub.status === "active")
-    .reduce((sum, sub) => sum + sub.amount, 0);
-
-  const pendingCharges = subscriptions.filter(sub => sub.status === "pending").length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-accent/30">
@@ -106,11 +121,7 @@ const Dashboard = () => {
               <Button variant="ghost" size="icon">
                 <Settings className="w-4 h-4" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate("/")}
-              >
+              <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
@@ -125,8 +136,12 @@ const Dashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Monthly Spend</p>
-                  <p className="text-2xl font-bold text-card-foreground">${totalMonthly.toFixed(2)}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Monthly Spend
+                  </p>
+                  <p className="text-2xl font-bold text-card-foreground">
+                    {money.format(monthlySpend)}
+                  </p>
                 </div>
                 <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center">
                   <CreditCard className="w-5 h-5 text-success" />
@@ -139,8 +154,12 @@ const Dashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Pending Approval</p>
-                  <p className="text-2xl font-bold text-card-foreground">{pendingCharges}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Pending Approval
+                  </p>
+                  <p className="text-2xl font-bold text-card-foreground">
+                    {pendingCount}
+                  </p>
                 </div>
                 <div className="w-10 h-10 bg-warning/20 rounded-full flex items-center justify-center">
                   <Bell className="w-5 h-5 text-warning" />
@@ -153,9 +172,11 @@ const Dashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Active Subscriptions</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Active Subscriptions
+                  </p>
                   <p className="text-2xl font-bold text-card-foreground">
-                    {subscriptions.filter(sub => sub.status === "active").length}
+                    {activeCount}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
@@ -177,7 +198,8 @@ const Dashboard = () => {
                 <div>
                   <h3 className="text-lg font-semibold">Connect Your Bank</h3>
                   <p className="text-sm text-muted-foreground">
-                    Link your bank account to monitor transactions and manage approvals
+                    Link your bank account to monitor transactions and manage
+                    approvals
                   </p>
                 </div>
               </div>
@@ -188,32 +210,18 @@ const Dashboard = () => {
 
         {/* Account Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Left: transactions list (your existing component) */}
           <TransactionList />
-          
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <h2 className="text-xl font-semibold">Bank Accounts</h2>
-              <p className="text-sm text-muted-foreground">
-                Your connected accounts and balances
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Banknote className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground"><BankAccountsCard />
-</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  <BankAccountsCard />
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Right: live bank accounts card (replaces old placeholder) */}
+          <BankAccountsCard />
         </div>
 
         {/* Subscriptions List */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
-            <h2 className="text-xl font-semibold text-card-foreground">Your Subscriptions</h2>
+            <h2 className="text-xl font-semibold text-card-foreground">
+              Your Subscriptions
+            </h2>
             <p className="text-sm text-muted-foreground">
               Manage your recurring charges and approve upcoming payments
             </p>
@@ -221,38 +229,50 @@ const Dashboard = () => {
           <CardContent className="p-0">
             <div className="divide-y divide-border/50">
               {subscriptions.map((subscription) => (
-                <div key={subscription.id} className="p-6 hover:bg-accent/20 transition-colors">
+                <div
+                  key={subscription.id}
+                  className="p-6 hover:bg-accent/20 transition-colors"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-medium text-card-foreground">{subscription.merchant}</h3>
-                        <Badge 
+                        <h3 className="font-medium text-card-foreground">
+                          {subscription.merchant}
+                        </h3>
+                        <Badge
                           variant={
-                            subscription.status === "active" ? "active" :
-                            subscription.status === "pending" ? "pending" : "denied"
+                            subscription.status === "active"
+                              ? "active"
+                              : subscription.status === "pending"
+                              ? "pending"
+                              : "denied"
                           }
                         >
                           {subscription.status}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>${subscription.amount} / {subscription.frequency}</span>
+                        <span>
+                          ${subscription.amount} / {subscription.frequency}
+                        </span>
                         <span>•</span>
                         <span>Next: {subscription.nextCharge}</span>
                         <span>•</span>
                         <span>{subscription.category}</span>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/subscription/${subscription.id}`)}
+                        onClick={() =>
+                          navigate(`/subscription/${subscription.id}`)
+                        }
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      
+
                       {subscription.status === "pending" && (
                         <>
                           <Button
