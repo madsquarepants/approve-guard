@@ -194,7 +194,8 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-center py-8">
                 <Banknote className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No accounts connected</p>
+                <p className="text-muted-foreground"><BankAccountsCard />
+</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   <BankAccountsCard />
                 </p>
