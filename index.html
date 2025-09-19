@@ -25,6 +25,15 @@
       })();
     </script>
 
+    <!-- Tailwind via CDN (no build step) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class'
+  };
+</script>
+
+
     <!-- Optional: surface real error messages in the console -->
     <script>
       window.addEventListener("error", (e) => {
