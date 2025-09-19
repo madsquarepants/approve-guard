@@ -1,4 +1,5 @@
-import { useState } from "react";
+// src/pages/Dashboard.tsx
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -14,12 +15,11 @@ import {
   Banknote,
 } from "lucide-react";
 import { PlaidLink } from "@/components/PlaidLink";
-import { AccountCard } from "@/components/AccountCard";
 import BankAccountsCard from "@/components/BankAccountsCard";
 import TransactionList from "@/components/TransactionList";
-import { computeMetrics, Sub } from "@/lib/subscriptionMetrics";
+import { fetchPlaidTransactions, calcMonthlySpend } from "@/lib/plaidClient";
+import { API } from "@/lib/config";
 
-// ----- types -----
 interface Subscription {
   id: string;
   merchant: string;
@@ -30,7 +30,7 @@ interface Subscription {
   category: string;
 }
 
-// ----- mock data (you can replace later) -----
+// You can delete/replace these later — keeping them for the Subscriptions list UI.
 const mockSubscriptions: Subscription[] = [
   {
     id: "1",
@@ -74,18 +74,47 @@ const Dashboard = () => {
   const [subscriptions, setSubscriptions] =
     useState<Subscription[]>(mockSubscriptions);
   const [showPlaidLink, setShowPlaidLink] = useState(true);
-  const navigate = useNavigate();
 
-  // ----- metrics for the 3 tiles -----
+  // NEW: monthly spend driven by Plaid
+  const [monthlySpendPlaid, setMonthlySpendPlaid] = useState<number | null>(
+    null
+  );
+  const [loadingSpend, setLoadingSpend] = useState(false);
+
+  const navigate = useNavigate();
   const money = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: "USD",
   });
-  const { monthlySpend, pendingCount, activeCount } = computeMetrics(
-    subscriptions as unknown as Sub[]
-  );
 
-  // ----- actions -----
+  // Load recent Plaid transactions and compute monthly spend (last 30 days)
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingSpend(true);
+        const txs = await fetchPlaidTransactions(30);
+        setMonthlySpendPlaid(calcMonthlySpend(txs));
+      } catch (e) {
+        console.error("Failed to load Plaid spend", e);
+      } finally {
+        setLoadingSpend(false);
+      }
+    })();
+  }, []);
+
+  // Hide the big “Connect your bank” banner if accounts already exist
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API}/v1/plaid/accounts`);
+        if (res.ok) setShowPlaidLink(false);
+      } catch {
+        /* leave banner visible on error */
+      }
+    })();
+  }, []);
+
+  // Approve/Deny actions (kept for your mock subscriptions list)
   const handleApprove = (id: string) => {
     setSubscriptions((prev) =>
       prev.map((sub) =>
@@ -101,6 +130,14 @@ const Dashboard = () => {
       )
     );
   };
+
+  // Fallbacks for other tiles (still based on your list)
+  const totalMonthlyFromList = subscriptions
+    .filter((s) => s.status === "active")
+    .reduce((sum, s) => sum + s.amount, 0);
+
+  const pendingCount = subscriptions.filter((s) => s.status === "pending").length;
+  const activeCount = subscriptions.filter((s) => s.status === "active").length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-accent/30">
@@ -132,6 +169,7 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Monthly Spend (Plaid) */}
           <Card className="border-0 shadow-lg bg-gradient-to-br from-success/10 to-success/5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -140,7 +178,11 @@ const Dashboard = () => {
                     Monthly Spend
                   </p>
                   <p className="text-2xl font-bold text-card-foreground">
-                    {money.format(monthlySpend)}
+                    {loadingSpend
+                      ? "…"
+                      : monthlySpendPlaid != null
+                      ? money.format(monthlySpendPlaid)
+                      : money.format(totalMonthlyFromList)}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center">
@@ -150,6 +192,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
+          {/* Pending Approval (still from list for now) */}
           <Card className="border-0 shadow-lg bg-gradient-to-br from-warning/10 to-warning/5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -168,6 +211,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
+          {/* Active Subscriptions (still from list for now) */}
           <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/10 to-primary/5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -203,20 +247,26 @@ const Dashboard = () => {
                   </p>
                 </div>
               </div>
-              <PlaidLink onSuccess={() => setShowPlaidLink(false)} />
+              <PlaidLink
+                onSuccess={() => {
+                  setShowPlaidLink(false);
+                  // optional: quick refresh so the cards update immediately
+                  window.location.reload();
+                }}
+              />
             </CardContent>
           </Card>
         )}
 
         {/* Account Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Left: transactions list (your existing component) */}
+          {/* Left: your existing transactions component */}
           <TransactionList />
-          {/* Right: live bank accounts card (replaces old placeholder) */}
+          {/* Right: Plaid bank accounts */}
           <BankAccountsCard />
         </div>
 
-        {/* Subscriptions List */}
+        {/* Subscriptions List (still driven by the local list for now) */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <h2 className="text-xl font-semibold text-card-foreground">
