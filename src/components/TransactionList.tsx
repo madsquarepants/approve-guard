@@ -1,15 +1,17 @@
+// src/components/RecentTransactionsCard.tsx
 import { useEffect, useState } from "react";
 import { API } from "@/lib/config";
+
+// currency formatter (keep only this one)
+const money = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" });
 
 type Tx = {
   transaction_id: string;
   name?: string;
-  date?: string;      // YYYY-MM-DD
+  date?: string; // YYYY-MM-DD
   amount?: number;
   iso_currency_code?: string;
 };
-
-const money = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" });
 
 export default function RecentTransactionsCard() {
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -20,7 +22,7 @@ export default function RecentTransactionsCard() {
     try {
       setLoading(true);
       setErr(null);
-      // ask for last 12 months to guarantee sandbox data
+      // last 12 months to guarantee sandbox data
       const r = await fetch(`${API}/v1/plaid/transactions?days=365&count=25`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
@@ -56,7 +58,14 @@ export default function RecentTransactionsCard() {
               <div className="font-medium">{t.name || "Transaction"}</div>
               <div className="text-xs text-muted-foreground">{t.date}</div>
             </div>
-            <div className="text-sm">
+
+            {/* colored + right-aligned amount */}
+            <div
+              className={
+                "text-sm tabular-nums text-right " +
+                ((t.amount ?? 0) < 0 ? "text-red-600" : "text-emerald-600")
+              }
+            >
               {typeof t.amount === "number" ? money.format(t.amount) : "-"}
             </div>
           </li>
