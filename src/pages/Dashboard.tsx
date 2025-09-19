@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import ThemeToggle from "@/components/ui/theme-toggle";
+
 import {
   CreditCard,
   Settings,
@@ -112,7 +114,10 @@ const Dashboard = () => {
               </Button>
               <Button variant="ghost" size="icon">
                 <Settings className="w-4 h-4" />
+          
               </Button>
+              {/* 🌙/☀️ Dark mode switch */}
+  <ThemeToggle />
               <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
                 <LogOut className="w-4 h-4" />
               </Button>
