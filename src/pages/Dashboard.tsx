@@ -7,7 +7,7 @@ import { CreditCard, Settings, Bell, Check, X, Eye, LogOut, Banknote } from "luc
 import { PlaidLink } from "@/components/PlaidLink";
 import { AccountCard } from "@/components/AccountCard";
 import BankAccountsCard from "@/components/BankAccountsCard";
-import { TransactionList } from "@/components/TransactionList";
+import  TransactionList  from "@/components/TransactionList";
 
 interface Subscription {
   id: string;
