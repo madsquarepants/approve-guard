@@ -2,19 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Minimal, safe tokens */
-:root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --border: 214.3 31.8% 91.4%;
-}
+/* Keep it dead simple: only Tailwind utilities via @apply.
+   No custom properties, no percent signs, nothing PostCSS can choke on. */
+@layer base {
+  /* default (light) */
+  body { @apply bg-white text-slate-900; }
+  * { @apply border-slate-200; }
 
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
+  /* dark mode – driven by <html class="dark"> */
+  .dark body { @apply bg-neutral-950 text-slate-50; }
+  .dark * { @apply border-slate-800; }
 }
-
-/* Apply tokens */
-* { border-color: hsl(var(--border)); }
-body { background: hsl(var(--background)); color: hsl(var(--foreground)); }
