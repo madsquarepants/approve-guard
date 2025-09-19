@@ -8,8 +8,14 @@ import { PlaidLink } from "@/components/PlaidLink";
 import { AccountCard } from "@/components/AccountCard";
 import BankAccountsCard from "@/components/BankAccountsCard";
 import  TransactionList  from "@/components/TransactionList";
+import { computeMetrics, Sub } from "@/lib/subscriptionMetrics";
+
 
 interface Subscription {
+  type SubscriptionLike = Subscription & Sub;
+const money = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" });
+const metrics = computeMetrics((subscriptions as unknown as SubscriptionLike[]) || []);
+
   id: string;
   merchant: string;
   amount: number;
