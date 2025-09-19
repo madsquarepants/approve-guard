@@ -2,14 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Keep it dead simple: only Tailwind utilities via @apply.
-   No custom properties, no percent signs, nothing PostCSS can choke on. */
-@layer base {
-  /* default (light) */
-  body { @apply bg-white text-slate-900; }
-  * { @apply border-slate-200; }
+/* Light mode (default) */
+body { background-color: #ffffff; color: #0f172a; } /* slate-900 */
+* { border-color: #e5e7eb; } /* slate-200 */
 
-  /* dark mode – driven by <html class="dark"> */
-  .dark body { @apply bg-neutral-950 text-slate-50; }
-  .dark * { @apply border-slate-800; }
-}
+/* Dark mode (html has class="dark") */
+html.dark body { background-color: #0a0a0a; color: #f8fafc; } /* near-black / slate-50 */
+html.dark * { border-color: #1f2937; } /* slate-800 */
