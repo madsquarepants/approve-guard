@@ -1,120 +1,20 @@
-/* Tailwind layers */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ---- Design tokens (HSL tuples) ---- */
-@layer base {
-  :root {
-    /* App surfaces */
-    --background: 0 0% 100%;
-    --foreground: 224 71% 4%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-
-    /* Brand */
-    --primary: 239 68% 58%;
-    --primary-foreground: 0 0% 100%;
-
-    /* Support */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-
-    --accent: 188 95% 43%;
-    --accent-foreground: 0 0% 100%;
-
-    /* States */
-    --success: 142 72% 29%;
-    --success-foreground: 0 0% 100%;
-    --success-background: 142 84% 90%;
-
-    --warning: 42 96% 50%;
-    --warning-foreground: 0 0% 100%;
-    --warning-background: 48 96% 89%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --destructive-background: 0 86% 97%;
-
-    /* Misc */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 239 68% 58%;
-
-    /* Radius */
-    --radius: 0.75rem;
-
-    /* Sidebar (optional) */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 6% 26%;
-    --sidebar-primary: 240 6% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 6% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
-  }
-
-  .dark {
-    --background: 222 84% 5%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 84% 5%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 84% 5%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 239 84% 67%;
-    --primary-foreground: 229 84% 10%;
-
-    --secondary: 218 33% 18%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 218 33% 18%;
-    --muted-foreground: 214 20% 65%;
-
-    --accent: 218 33% 18%;
-    --accent-foreground: 210 40% 98%;
-
-    --success: 142 72% 35%;
-    --success-foreground: 0 0% 100%;
-    --success-background: 142 37% 24%;
-
-    --warning: 42 96% 50%;
-    --warning-foreground: 0 0% 100%;
-    --warning-background: 35 92% 20%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --destructive-background: 357 38% 15%;
-
-    --border: 218 33% 18%;
-    --input: 218 33% 18%;
-    --ring: 213 27% 84%;
-
-    --sidebar-background: 240 6% 10%;
-    --sidebar-foreground: 240 5% 96%;
-    --sidebar-primary: 224 76% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4% 16%;
-    --sidebar-accent-foreground: 240 5% 96%;
-    --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 217 91% 60%;
-  }
-
-  /* Apply tokens */
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+/* Minimal, safe tokens */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --border: 214.3 31.8% 91.4%;
 }
+
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+}
+
+/* Apply tokens */
+* { border-color: hsl(var(--border)); }
+body { background: hsl(var(--background)); color: hsl(var(--foreground)); }
