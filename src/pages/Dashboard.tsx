@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Settings, Bell, Check, X, Eye, LogOut, Banknote } from "lucide-react";
 import { PlaidLink } from "@/components/PlaidLink";
 import { AccountCard } from "@/components/AccountCard";
+import BankAccountsCard from "@/components/BankAccountsCard";
 import { TransactionList } from "@/components/TransactionList";
 
 interface Subscription {
@@ -195,7 +196,7 @@ const Dashboard = () => {
                 <Banknote className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No accounts connected</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Connect your bank account to see your accounts here
+                  <BankAccountsCard />
                 </p>
               </div>
             </CardContent>
