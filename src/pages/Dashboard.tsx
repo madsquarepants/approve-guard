@@ -18,76 +18,26 @@ import { PlaidLink } from "@/components/PlaidLink";
 import BankAccountsCard from "@/components/BankAccountsCard";
 import TransactionList from "@/components/TransactionList";
 import { fetchPlaidTransactions, calcMonthlySpend } from "@/lib/plaidClient";
+import { inferSubscriptionsFromTransactions, DetectedSubscription } from "@/lib/subscriptionsFromPlaid";
 import { API } from "@/lib/config";
 
-interface Subscription {
-  id: string;
-  merchant: string;
-  amount: number;
-  frequency: "Monthly" | "Annual" | "Weekly";
-  status: "active" | "pending" | "denied";
-  nextCharge: string;
-  category: string;
-}
-
-// You can delete/replace these later — keeping them for the Subscriptions list UI.
-const mockSubscriptions: Subscription[] = [
-  {
-    id: "1",
-    merchant: "Netflix",
-    amount: 15.99,
-    frequency: "Monthly",
-    status: "pending",
-    nextCharge: "2024-01-15",
-    category: "Entertainment",
-  },
-  {
-    id: "2",
-    merchant: "Spotify Premium",
-    amount: 9.99,
-    frequency: "Monthly",
-    status: "active",
-    nextCharge: "2024-01-12",
-    category: "Music",
-  },
-  {
-    id: "3",
-    merchant: "Adobe Creative Cloud",
-    amount: 52.99,
-    frequency: "Monthly",
-    status: "active",
-    nextCharge: "2024-01-20",
-    category: "Software",
-  },
-  {
-    id: "4",
-    merchant: "Gym Membership",
-    amount: 29.99,
-    frequency: "Monthly",
-    status: "denied",
-    nextCharge: "2024-01-10",
-    category: "Health & Fitness",
-  },
-];
-
 const Dashboard = () => {
-  const [subscriptions, setSubscriptions] =
-    useState<Subscription[]>(mockSubscriptions);
-  const [showPlaidLink, setShowPlaidLink] = useState(true);
+  const navigate = useNavigate();
 
-  // NEW: monthly spend driven by Plaid
-  const [monthlySpendPlaid, setMonthlySpendPlaid] = useState<number | null>(
-    null
-  );
+  // Plaid-driven monthly spend
+  const [monthlySpendPlaid, setMonthlySpendPlaid] = useState<number | null>(null);
   const [loadingSpend, setLoadingSpend] = useState(false);
 
-  const navigate = useNavigate();
-  const money = new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-  });
+  // Plaid-inferred subscriptions
+  const [subscriptions, setSubscriptions] = useState<DetectedSubscription[]>([]);
+  const [loadingSubs, setLoadingSubs] = useState(false);
 
-  // Load recent Plaid transactions and compute monthly spend (last 30 days)
+  // Show big Link banner only if no accounts yet
+  const [showPlaidLink, setShowPlaidLink] = useState(true);
+
+  const money = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" });
+
+  // Load monthly spend (30d debits)
   useEffect(() => {
     (async () => {
       try {
@@ -102,39 +52,44 @@ const Dashboard = () => {
     })();
   }, []);
 
-  // Hide the big “Connect your bank” banner if accounts already exist
+  // Hide Link banner if accounts already exist
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`${API}/v1/plaid/accounts`);
         if (res.ok) setShowPlaidLink(false);
-      } catch {
-        /* leave banner visible on error */
+      } catch { /* keep banner visible on error */ }
+    })();
+  }, []);
+
+  // Infer subscriptions from Plaid (last 90d gives better signal)
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingSubs(true);
+        const txs = await fetchPlaidTransactions(90);
+        const inferred = inferSubscriptionsFromTransactions(txs);
+        setSubscriptions(inferred);
+      } catch (e) {
+        console.error("Failed to infer subscriptions", e);
+        setSubscriptions([]);
+      } finally {
+        setLoadingSubs(false);
       }
     })();
   }, []);
 
-  // Approve/Deny actions (kept for your mock subscriptions list)
+  // Approve / Deny
   const handleApprove = (id: string) => {
     setSubscriptions((prev) =>
-      prev.map((sub) =>
-        sub.id === id ? { ...sub, status: "active" as const } : sub
-      )
+      prev.map((s) => (s.id === id ? { ...s, status: "active" as const } : s))
     );
   };
-
   const handleDeny = (id: string) => {
     setSubscriptions((prev) =>
-      prev.map((sub) =>
-        sub.id === id ? { ...sub, status: "denied" as const } : sub
-      )
+      prev.map((s) => (s.id === id ? { ...s, status: "denied" as const } : s))
     );
   };
-
-  // Fallbacks for other tiles (still based on your list)
-  const totalMonthlyFromList = subscriptions
-    .filter((s) => s.status === "active")
-    .reduce((sum, s) => sum + s.amount, 0);
 
   const pendingCount = subscriptions.filter((s) => s.status === "pending").length;
   const activeCount = subscriptions.filter((s) => s.status === "active").length;
@@ -174,15 +129,13 @@ const Dashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Monthly Spend
-                  </p>
+                  <p className="text-sm font-medium text-muted-foreground">Monthly Spend</p>
                   <p className="text-2xl font-bold text-card-foreground">
                     {loadingSpend
                       ? "…"
                       : monthlySpendPlaid != null
                       ? money.format(monthlySpendPlaid)
-                      : money.format(totalMonthlyFromList)}
+                      : money.format(0)}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center">
@@ -192,17 +145,13 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Pending Approval (still from list for now) */}
+          {/* Pending Approval (from inferred subs) */}
           <Card className="border-0 shadow-lg bg-gradient-to-br from-warning/10 to-warning/5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Pending Approval
-                  </p>
-                  <p className="text-2xl font-bold text-card-foreground">
-                    {pendingCount}
-                  </p>
+                  <p className="text-sm font-medium text-muted-foreground">Pending Approval</p>
+                  <p className="text-2xl font-bold text-card-foreground">{pendingCount}</p>
                 </div>
                 <div className="w-10 h-10 bg-warning/20 rounded-full flex items-center justify-center">
                   <Bell className="w-5 h-5 text-warning" />
@@ -211,17 +160,13 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Active Subscriptions (still from list for now) */}
+          {/* Active Subscriptions (from inferred subs) */}
           <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/10 to-primary/5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Active Subscriptions
-                  </p>
-                  <p className="text-2xl font-bold text-card-foreground">
-                    {activeCount}
-                  </p>
+                  <p className="text-sm font-medium text-muted-foreground">Active Subscriptions</p>
+                  <p className="text-2xl font-bold text-card-foreground">{activeCount}</p>
                 </div>
                 <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
                   <Check className="w-5 h-5 text-primary" />
@@ -242,16 +187,14 @@ const Dashboard = () => {
                 <div>
                   <h3 className="text-lg font-semibold">Connect Your Bank</h3>
                   <p className="text-sm text-muted-foreground">
-                    Link your bank account to monitor transactions and manage
-                    approvals
+                    Link your bank account to monitor transactions and manage approvals
                   </p>
                 </div>
               </div>
               <PlaidLink
                 onSuccess={() => {
                   setShowPlaidLink(false);
-                  // optional: quick refresh so the cards update immediately
-                  window.location.reload();
+                  window.location.reload(); // quick refresh so cards update
                 }}
               />
             </CardContent>
@@ -260,94 +203,75 @@ const Dashboard = () => {
 
         {/* Account Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Left: your existing transactions component */}
           <TransactionList />
-          {/* Right: Plaid bank accounts */}
           <BankAccountsCard />
         </div>
 
-        {/* Subscriptions List (still driven by the local list for now) */}
+        {/* Subscriptions List (from Plaid inference) */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
-            <h2 className="text-xl font-semibold text-card-foreground">
-              Your Subscriptions
-            </h2>
+            <h2 className="text-xl font-semibold text-card-foreground">Your Subscriptions</h2>
             <p className="text-sm text-muted-foreground">
-              Manage your recurring charges and approve upcoming payments
+              {loadingSubs
+                ? "Scanning transactions…"
+                : subscriptions.length
+                ? "Manage your recurring charges and approve upcoming payments"
+                : "No subscriptions detected yet"}
             </p>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-border/50">
-              {subscriptions.map((subscription) => (
-                <div
-                  key={subscription.id}
-                  className="p-6 hover:bg-accent/20 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-medium text-card-foreground">
-                          {subscription.merchant}
-                        </h3>
-                        <Badge
-                          variant={
-                            subscription.status === "active"
-                              ? "active"
-                              : subscription.status === "pending"
-                              ? "pending"
-                              : "denied"
-                          }
-                        >
-                          {subscription.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>
-                          ${subscription.amount} / {subscription.frequency}
-                        </span>
-                        <span>•</span>
-                        <span>Next: {subscription.nextCharge}</span>
-                        <span>•</span>
-                        <span>{subscription.category}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          navigate(`/subscription/${subscription.id}`)
-                        }
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-
-                      {subscription.status === "pending" && (
-                        <>
-                          <Button
-                            variant="approve"
-                            size="sm"
-                            onClick={() => handleApprove(subscription.id)}
+            {subscriptions.length === 0 && !loadingSubs ? (
+              <div className="p-6 text-sm text-muted-foreground">Nothing found yet.</div>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {subscriptions.map((s) => (
+                  <div key={s.id} className="p-6 hover:bg-accent/20 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-medium text-card-foreground">{s.merchant}</h3>
+                          <Badge
+                            variant={
+                              s.status === "active"
+                                ? "active"
+                                : s.status === "pending"
+                                ? "pending"
+                                : "denied"
+                            }
                           >
-                            <Check className="w-4 h-4" />
-                            Approve
-                          </Button>
-                          <Button
-                            variant="deny"
-                            size="sm"
-                            onClick={() => handleDeny(subscription.id)}
-                          >
-                            <X className="w-4 h-4" />
-                            Deny
-                          </Button>
-                        </>
-                      )}
+                            {s.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>${s.amount} / {s.frequency}</span>
+                          <span>•</span>
+                          <span>Next: {s.nextCharge}</span>
+                          <span>•</span>
+                          <span>{s.category}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/subscription/${s.id}`)}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+
+                        {s.status === "pending" && (
+                          <>
+                            <Button variant="approve" size="sm" onClick={() => handleApprove(s.id)}>
+                              <Check className="w-4 h-4" /> Approve
+                            </Button>
+                            <Button variant="deny" size="sm" onClick={() => handleDeny(s.id)}>
+                              <X className="w-4 h-4" /> Deny
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
